@@ -1,0 +1,24 @@
+                     +----------------------------+
+                     |  User Request (HTTP/HTTPS) |
+                     +------------+---------------+
+                                  |
+                                  v
+                       +-----------------+
+                       |     NGINX       |
+                       |   Reverse Proxy |
+                       +---------+-------+
+                                 |
+                                 v
+          +-----------------------------------------+
+          |            Cribl Master Node            |
+          |   (cribl/cribl:latest on master-1)      |
+          |      Exposed Port: 19000 -> 9000        |
+          +------------------+----------------------+
+                                 |
+                    +------------+------------+
+                    |                         |
+          +---------v---------+      +--------v---------------+
+          |  Cribl Worker 1   |      |   Cribl Worker 2       |
+          | (cribl/cribl:latest)     | (cribl/cribl:latest)   |
+          |  Running on workers-1    |  Running on workers-2  |
+          +--------------------------+------------------------+
