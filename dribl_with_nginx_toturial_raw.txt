@@ -1,0 +1,49 @@
+Cribl in Docker with Nginx
+
+https://github.com/bentleymi/misc/blob/main/docker/cribl/notes/5.%20How%20to%20Configure%20Cribl%20Stream%20on%20Ubuntu%20to%20send%20to%20Nginx%20Load%20Balancer%20to%20send%20to%20Cribl%20Stream%20workers%20in%20Docker%20for%20free.txt
+
+1. Laster ned docker og Docker Desktop
+2. mkdir myTestEnv/criblwithnginx
+3. touch docker-compose.yml # Paste github.com/bentleymi/misc/blob/main/docker/cribl/
+4. docker-compose1.yml inn i yml-filen og lagre.
+5. docker compose up -d --scale workers=2
+6. docker exec -it criblwithnginx-ubuntu-1 /bin/sh
+7. apt-get update && apt-get install curl -y cd /opt curl -Lso - $(curl https://cdn.cribl.io/dl/latest-arm64) | tar zxv apt-get install git -y /opt/cribl/bin/cribl start
+8. apt-get install nginx -y
+9. Apt-get install nano
+10. nano /etc/nginx/conf.d/stream.conf  # paste this: stream {
+		upstream 5140_tcp_backend {
+  			least_conn;
+        		server criblWithNginx-workers-1:5140;
+       			server criblWithNginx-workers-2:5140;
+    }
+	
+	server {
+        	listen 5140;
+        	proxy_pass 5140_tcp_backend;
+    }
+}  
+1. mv /etc/nginx/conf.d/stream.conf /etc/nginx/stream.conf
+2. echo 'include /etc/nginx/stream.conf;' >> /etc/nginx/nginx.conf
+3. Apt-get install vim
+4. vi /etc/nginx/stream.d/5140.conf # pastethis: server {
+	 listen 5140;
+	 proxy_pass 5140_tcp_backend;
+	}
+
+	upstream 5140_tcp_backend {
+	 least_conn;
+	 server criblWithNginx-workers-1:5140;
+	 server criblWithNginx-workers-2:5140;
+	}
+16. Nginx -t # should produce this message: # nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+      # nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+17. Nginx -s reload # should produce this message: # signal process started
+18. #Now, we can run: netstat -an | grep 5140
+19. From Cribl stream leader node, we modify the worker group to enable syslog inbound
+20. Gå til Cribl UI —> velg worker group —> data —> sources —> velg syslog. Se cribl_syslog_source_config screenshot. Husk klikk «Enable» og save.
+21. Commit and deploy
+22. In Cribl UI, open sources—>syslog—>Live data. Next, in nginx instance, run curl localhost:5140 -d "test», to produce som data in cribl. See screenshot cribl_recieving_logs_from_nginx_syslog 
+
+NB: Dersom både  /etc/nginx/modules-enabled/50-mod-stream.conf  OG /etc/nginx/nginx.conf inneholder linjen load_module modules/ngx_stream_module.so;, må linjen i sistnevnte fil slettes.
